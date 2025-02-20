@@ -42,9 +42,9 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="booking"
+        name="menu"
         options={{
-          title: "Booking",
+          title: "Book",
           tabBarIcon: ({ color }) => (
             <FontAwesome6 name="check-to-slot" size={24} color="black" />
           ),

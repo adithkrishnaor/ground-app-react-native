@@ -1,12 +1,6 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
-import { router } from "expo-router";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { router, Stack } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 // Custom format
@@ -17,18 +11,11 @@ const formatDate = (date: Date) => {
   return `${day}-${month}-${year}`; // Returns "31-01-2024"
 };
 
-export default function booking() {
+export default function cricketBooking() {
   const [selectedDate, setSelectedDate] = useState<Date>(
     new Date(Date.now() + 86400000)
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-
-  const timeSlots = [
-    "07:00 AM - 10:00 AM",
-    "10:00 AM - 01:00 PM",
-    "02:00 PM - 05:00 PM",
-  ];
 
   const handleDateChange = (event: any, date?: Date) => {
     setShowDatePicker(false);
@@ -38,76 +25,60 @@ export default function booking() {
   };
 
   const handleContinue = () => {
-    if (selectedDate && selectedSlot) {
-      // Navigate to user details page with selected date and time
+    if (selectedDate) {
+      // Navigate to user details page with selected date
       router.push({
         pathname: "/screens/userDetails",
         params: {
           date: selectedDate.toISOString(),
-          timeSlot: selectedSlot,
         },
       });
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Book Your Slot</Text>
+    <>
+      <Stack.Screen
+        options={{
+          headerTitle: "", // This removes the title/path
+          headerBackTitle: "Back", // Optional: Changes "Back" text
+          headerTransparent: true, // Makes header background transparent
+        }}
+      />
+      <View style={styles.container}>
+        <Text style={styles.title}>Book Your Cricket Slot</Text>
 
-      <View style={styles.dateContainer}>
-        <Text style={styles.subtitle}>Select Date:</Text>
-        <TouchableOpacity
-          onPress={() => setShowDatePicker(true)}
-          style={styles.dateButton}
-        >
-          <Text style={styles.dateButtonText}>{formatDate(selectedDate)}</Text>
-        </TouchableOpacity>
-        {showDatePicker && (
-          <DateTimePicker
-            value={selectedDate}
-            mode="date"
-            minimumDate={new Date(Date.now() + 86400000)}
-            onChange={handleDateChange}
-          />
-        )}
-      </View>
-
-      <Text style={styles.subtitle}>Select Time Slot:</Text>
-      <ScrollView style={styles.slotsContainer}>
-        <View style={styles.slotsGrid}>
-          {timeSlots.map((slot) => (
-            <TouchableOpacity
-              key={slot}
-              style={[
-                styles.slot,
-                selectedSlot === slot && styles.selectedSlot,
-              ]}
-              onPress={() => setSelectedSlot(slot)}
-            >
-              <Text
-                style={[
-                  styles.slotText,
-                  selectedSlot === slot && styles.selectedSlotText,
-                ]}
-              >
-                {slot}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.dateContainer}>
+          <Text style={styles.subtitle}>Select Date:</Text>
+          <TouchableOpacity
+            onPress={() => setShowDatePicker(true)}
+            style={styles.dateButton}
+          >
+            <Text style={styles.dateButtonText}>
+              {formatDate(selectedDate)}
+            </Text>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="date"
+              minimumDate={new Date(Date.now() + 86400000)}
+              onChange={handleDateChange}
+            />
+          )}
         </View>
-      </ScrollView>
-
-      <TouchableOpacity
-        style={[
-          styles.continueButton,
-          (!selectedDate || !selectedSlot) && styles.disabledButton,
-        ]}
-        onPress={handleContinue}
-        disabled={!selectedDate || !selectedSlot}
-      >
-        <Text style={styles.continueButtonText}>Continue</Text>
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity
+          style={[
+            styles.continueButton,
+            !selectedDate && styles.disabledButton,
+          ]}
+          onPress={handleContinue}
+          disabled={!selectedDate}
+        >
+          <Text style={styles.continueButtonText}>Continue</Text>
+        </TouchableOpacity>
+      </View>
+    </>
   );
 }
 
@@ -116,6 +87,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: "#fff",
+    paddingTop: 60, // Add padding to account for header
   },
   title: {
     fontSize: 24,

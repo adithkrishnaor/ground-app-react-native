@@ -8,7 +8,7 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { useLocalSearchParams, Stack } from "expo-router";
+import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -19,6 +19,7 @@ const formatDate = (dateString: string) => {
 };
 
 export default function userDetails() {
+  const router = useRouter();
   const params = useLocalSearchParams();
   const { date, timeSlot } = params;
 
@@ -48,7 +49,7 @@ export default function userDetails() {
       "Booking Confirmed",
       `Date: ${formatDate(
         date as string
-      )}\nTime: ${timeSlot}\nName: ${name}\nEmail: ${email}\nPhone: ${phone}`
+      )} \nTime: ${timeSlot} \nName: ${name} \nEmail: ${email} \nPhone: ${phone}`
     );
   };
 
@@ -67,7 +68,7 @@ export default function userDetails() {
           <Text style={styles.detailText}>
             Date: {formatDate(date as string)}
           </Text>
-          <Text style={styles.detailText}>Time: {timeSlot}</Text>
+          {timeSlot && <Text style={styles.detailText}>Time: {timeSlot}</Text>}
         </View>
 
         <View style={styles.form}>
@@ -108,6 +109,12 @@ export default function userDetails() {
           disabled={!name || !email || !phone}
         >
           <Text style={styles.confirmButtonText}>Confirm Booking</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
       </ScrollView>
     </>
@@ -165,6 +172,18 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  backButton: {
+    backgroundColor: "#f0f0f0",
+    padding: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  backButtonText: {
+    color: "#007AFF",
     fontSize: 16,
     fontWeight: "bold",
   },
