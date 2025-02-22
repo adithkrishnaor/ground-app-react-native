@@ -1,7 +1,14 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { router, Stack } from "expo-router";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
+import { router } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { Stack } from "expo-router";
 
 // Custom format
 const formatDate = (date: Date) => {
@@ -16,6 +23,9 @@ export default function cricketBooking() {
     new Date(Date.now() + 86400000)
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+
+  const timeSlots = ["09:00 AM - 05:00 PM"];
 
   const handleDateChange = (event: any, date?: Date) => {
     setShowDatePicker(false);
@@ -25,12 +35,13 @@ export default function cricketBooking() {
   };
 
   const handleContinue = () => {
-    if (selectedDate) {
-      // Navigate to user details page with selected date
+    if (selectedDate && selectedSlot) {
+      // Navigate to user details page with selected date and time
       router.push({
         pathname: "/screens/userDetails",
         params: {
           date: selectedDate.toISOString(),
+          timeSlot: selectedSlot,
         },
       });
     }
@@ -67,13 +78,39 @@ export default function cricketBooking() {
             />
           )}
         </View>
+
+        <Text style={styles.subtitle}>Select Time Slot:</Text>
+        <ScrollView style={styles.slotsContainer}>
+          <View style={styles.slotsGrid}>
+            {timeSlots.map((slot) => (
+              <TouchableOpacity
+                key={slot}
+                style={[
+                  styles.slot,
+                  selectedSlot === slot && styles.selectedSlot,
+                ]}
+                onPress={() => setSelectedSlot(slot)}
+              >
+                <Text
+                  style={[
+                    styles.slotText,
+                    selectedSlot === slot && styles.selectedSlotText,
+                  ]}
+                >
+                  {slot}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+
         <TouchableOpacity
           style={[
             styles.continueButton,
-            !selectedDate && styles.disabledButton,
+            (!selectedDate || !selectedSlot) && styles.disabledButton,
           ]}
           onPress={handleContinue}
-          disabled={!selectedDate}
+          disabled={!selectedDate || !selectedSlot}
         >
           <Text style={styles.continueButtonText}>Continue</Text>
         </TouchableOpacity>
@@ -82,6 +119,7 @@ export default function cricketBooking() {
   );
 }
 
+// Update container style to account for header
 const styles = StyleSheet.create({
   container: {
     flex: 1,

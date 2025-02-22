@@ -7,8 +7,21 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Pressable,
 } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
+import { addDoc, collection } from "firebase/firestore";
+import { db } from "../../config/FirebaseConfig";
+
+// Define type for Firestore booking data
+interface BookingDetails {
+  name: string;
+  email: string;
+  phone: string;
+  date: string;
+  timeSlot: string;
+  timestamp: Date;
+}
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -20,14 +33,16 @@ const formatDate = (dateString: string) => {
 
 export default function userDetails() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  const { date, timeSlot } = params;
+  const { date, timeSlot } = useLocalSearchParams<{
+    date: string;
+    timeSlot: string;
+  }>();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!name || !email || !phone) {
       Alert.alert("Error", "Please fill in all fields");
       return;
@@ -43,14 +58,27 @@ export default function userDetails() {
       return;
     }
 
+    try {
+      const newBooking: BookingDetails = {
+        name,
+        email,
+        phone,
+        date,
+        timeSlot,
+        timestamp: new Date(),
+      };
+      await addDoc(collection(db, "bookings"), newBooking);
+      Alert.alert(
+        "Booking Confirmed",
+        `Date: ${formatDate(
+          date as string
+        )} \nTime: ${timeSlot} \nName: ${name} \nEmail: ${email} \nPhone: ${phone}`
+      );
+    } catch (error) {
+      Alert.alert("Error", "An error occurred while processing your booking");
+      console.log("Firestore Error", error);
+    }
     // Handle the booking confirmation
-    // For now, just show an alert
-    Alert.alert(
-      "Booking Confirmed",
-      `Date: ${formatDate(
-        date as string
-      )} \nTime: ${timeSlot} \nName: ${name} \nEmail: ${email} \nPhone: ${phone}`
-    );
   };
 
   return (
@@ -73,14 +101,12 @@ export default function userDetails() {
 
         <View style={styles.form}>
           <Text style={styles.subtitle}>Your Details:</Text>
-
           <TextInput
             style={styles.input}
             placeholder="Full Name"
             value={name}
             onChangeText={setName}
           />
-
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -89,7 +115,6 @@ export default function userDetails() {
             keyboardType="email-address"
             autoCapitalize="none"
           />
-
           <TextInput
             style={styles.input}
             placeholder="Phone Number"
@@ -98,18 +123,11 @@ export default function userDetails() {
             keyboardType="numeric"
             maxLength={10}
           />
+          <Pressable style={styles.button} onPress={handleConfirm}>
+            <Text style={styles.buttonText}>Confirm Booking</Text>
+          </Pressable>{" "}
         </View>
 
-        <TouchableOpacity
-          style={[
-            styles.confirmButton,
-            (!name || !email || !phone) && styles.disabledButton,
-          ]}
-          onPress={handleConfirm}
-          disabled={!name || !email || !phone}
-        >
-          <Text style={styles.confirmButtonText}>Confirm Booking</Text>
-        </TouchableOpacity>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
@@ -187,4 +205,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
+  button: {
+    backgroundColor: "#4CAF50",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  buttonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 });

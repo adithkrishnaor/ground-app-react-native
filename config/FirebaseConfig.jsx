@@ -3,8 +3,7 @@ import { initializeApp } from "firebase/app";
 import { API_KEY, AUTH_DOMAIN } from "@env";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-// console.log(API_KEY);
-// console.log(AUTH_DOMAIN);
+
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
