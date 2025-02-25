@@ -20,7 +20,9 @@ interface BookingDetails {
   phone: string;
   date: string;
   timeSlot: string;
+  groundType: string;
   timestamp: Date;
+  status: "pending" | "approved" | "rejected";
 }
 
 const formatDate = (dateString: string) => {
@@ -33,9 +35,10 @@ const formatDate = (dateString: string) => {
 
 export default function userDetails() {
   const router = useRouter();
-  const { date, timeSlot } = useLocalSearchParams<{
+  const { date, timeSlot, groundType } = useLocalSearchParams<{
     date: string;
     timeSlot: string;
+    groundType: string;
   }>();
 
   const [name, setName] = useState("");
@@ -65,7 +68,9 @@ export default function userDetails() {
         phone,
         date,
         timeSlot,
+        groundType: groundType as string,
         timestamp: new Date(),
+        status: "pending",
       };
       await addDoc(collection(db, "bookings"), newBooking);
       Alert.alert(
@@ -88,7 +93,7 @@ export default function userDetails() {
           headerShown: false,
         }}
       />
-      <ScrollView style={styles.container}>
+      <ScrollView style={[styles.container, { paddingTop: 50 }]}>
         <Text style={styles.title}>Confirm Booking</Text>
 
         <View style={styles.bookingDetails}>
@@ -97,9 +102,12 @@ export default function userDetails() {
             Date: {formatDate(date as string)}
           </Text>
           {timeSlot && <Text style={styles.detailText}>Time: {timeSlot}</Text>}
+          <Text style={styles.detailText}>
+            Ground: {groundType === "cricket" ? "Cricket" : "Football"}
+          </Text>
         </View>
 
-        <View style={styles.form}>
+        <View style={[styles.form, styles.bookingDetails]}>
           <Text style={styles.subtitle}>Your Details:</Text>
           <TextInput
             style={styles.input}
@@ -125,7 +133,7 @@ export default function userDetails() {
           />
           <Pressable style={styles.button} onPress={handleConfirm}>
             <Text style={styles.buttonText}>Confirm Booking</Text>
-          </Pressable>{" "}
+          </Pressable>
         </View>
 
         <TouchableOpacity
@@ -141,7 +149,6 @@ export default function userDetails() {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
     flex: 1,
     padding: 16,
     backgroundColor: "#fff",

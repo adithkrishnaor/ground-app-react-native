@@ -1,21 +1,44 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Stack } from "expo-router";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/config/FirebaseConfig";
 
-// Custom format
+// Update the BookingSlot interface to match Firestore data
+interface BookingSlot {
+  id: string;
+  timeSlot: string;
+  status: "pending" | "approved" | "rejected";
+  date: string;
+  groundType: string;
+  name: string;
+  email: string;
+  phone: string;
+}
+
+// Custom format for display
 const formatDate = (date: Date) => {
   const day = date.getDate().toString().padStart(2, "0");
   const month = (date.getMonth() + 1).toString().padStart(2, "0");
   const year = date.getFullYear();
   return `${day}-${month}-${year}`; // Returns "31-01-2024"
+};
+
+// Format date for comparison (only date part without time)
+const formatDateForComparison = (date: Date) => {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 export default function footballBooking() {
@@ -24,12 +47,21 @@ export default function footballBooking() {
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [bookingSlots, setBookingSlots] = useState<BookingSlot[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const timeSlots = [
     "07:00 AM - 10:00 AM",
     "10:00 AM - 01:00 PM",
     "02:00 PM - 05:00 PM",
   ];
+  const groundType = "football";
+
+  // Clear selected slot when date changes
+  useEffect(() => {
+    setSelectedSlot(null);
+    fetchBookingSlots();
+  }, [selectedDate]);
 
   const handleDateChange = (event: any, date?: Date) => {
     setShowDatePicker(false);
@@ -46,18 +78,137 @@ export default function footballBooking() {
         params: {
           date: selectedDate.toISOString(),
           timeSlot: selectedSlot,
+          groundType: groundType,
         },
       });
     }
+  };
+
+  // Fetch booking slots function with proper date handling
+  const fetchBookingSlots = async () => {
+    try {
+      setIsLoading(true);
+
+      // Get all bookings for football grounds
+      const bookingsRef = collection(db, "bookings");
+      const q = query(bookingsRef, where("groundType", "==", "football"));
+
+      const querySnapshot = await getDocs(q);
+      const slots: BookingSlot[] = [];
+
+      // Format the selected date for comparison
+      const selectedDateStr = formatDateForComparison(selectedDate);
+
+      // Filter bookings for the selected date manually
+      querySnapshot.forEach((doc) => {
+        const data = doc.data() as Omit<BookingSlot, "id">;
+
+        // Extract and compare only the date part
+        const bookingDate = new Date(data.date);
+        const bookingDateStr = formatDateForComparison(bookingDate);
+
+        // Add only bookings that match the selected date
+        if (bookingDateStr === selectedDateStr) {
+          slots.push({
+            id: doc.id,
+            ...data,
+          });
+        }
+      });
+
+      setBookingSlots(slots);
+      console.log("Fetched slots:", slots);
+      console.log("Selected date for filtering:", selectedDateStr);
+    } catch (error) {
+      console.error("Error fetching slots:", error);
+      // Handle error appropriately
+      setBookingSlots([]);
+      Alert.alert("Error", "Failed to load booking information.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to check if a slot is available
+  const isSlotAvailable = (slot: string): boolean => {
+    // Get all bookings for this specific slot
+    const slotBookings = bookingSlots.filter((b) => b.timeSlot === slot);
+
+    // If there are no bookings, the slot is available
+    if (slotBookings.length === 0) {
+      return true;
+    }
+
+    // If any booking is approved or pending, the slot is NOT available
+    const hasApprovedOrPending = slotBookings.some(
+      (booking) => booking.status === "approved" || booking.status === "pending"
+    );
+
+    return !hasApprovedOrPending;
+  };
+
+  // Function to get the appropriate style for each slot
+  const getSlotStyle = (slot: string) => {
+    const slotBookings = bookingSlots.filter((b) => b.timeSlot === slot);
+
+    // Default slot style (available)
+    let slotStyle = [styles.slot];
+
+    // If there are no bookings, return the default style (available)
+    if (slotBookings.length === 0) {
+      return slotStyle;
+    }
+
+    // Check for approved and pending bookings with priority on approved
+    const hasApproved = slotBookings.some(
+      (booking) => booking.status === "approved"
+    );
+    const hasPending = slotBookings.some(
+      (booking) => booking.status === "pending"
+    );
+
+    if (hasApproved) {
+      return [...slotStyle, styles.bookedSlot];
+    }
+
+    if (hasPending) {
+      return [...slotStyle, styles.pendingSlot];
+    }
+
+    // If all bookings are rejected, the slot is available (default style)
+    return slotStyle;
+  };
+
+  // Function to get the text status for each slot
+  const getSlotStatusText = (slot: string): string => {
+    const slotBookings = bookingSlots.filter((b) => b.timeSlot === slot);
+
+    // If there are no bookings, it's available
+    if (slotBookings.length === 0) {
+      return "Available";
+    }
+
+    // Check for approved bookings first (highest priority)
+    if (slotBookings.some((booking) => booking.status === "approved")) {
+      return "Booked";
+    }
+
+    // Then check for pending bookings
+    if (slotBookings.some((booking) => booking.status === "pending")) {
+      return "Pending Approval";
+    }
+
+    // If all bookings are rejected, the slot is available
+    return "Available";
   };
 
   return (
     <>
       <Stack.Screen
         options={{
-          headerTitle: "", // This removes the title/path
-          headerBackTitle: "Back", // Optional: Changes "Back" text
-          headerTransparent: true, // Makes header background transparent
+          headerTitle: "",
+          headerBackTitle: "Back",
+          headerTransparent: true,
         }}
       />
       <View style={styles.container}>
@@ -84,29 +235,52 @@ export default function footballBooking() {
         </View>
 
         <Text style={styles.subtitle}>Select Time Slot:</Text>
-        <ScrollView style={styles.slotsContainer}>
-          <View style={styles.slotsGrid}>
-            {timeSlots.map((slot) => (
-              <TouchableOpacity
-                key={slot}
-                style={[
-                  styles.slot,
-                  selectedSlot === slot && styles.selectedSlot,
-                ]}
-                onPress={() => setSelectedSlot(slot)}
-              >
-                <Text
-                  style={[
-                    styles.slotText,
-                    selectedSlot === slot && styles.selectedSlotText,
-                  ]}
-                >
-                  {slot}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
+        {isLoading ? (
+          <Text style={styles.loadingText}>Loading available slots...</Text>
+        ) : (
+          <ScrollView style={styles.slotsContainer}>
+            <View style={styles.slotsGrid}>
+              {timeSlots.map((slot) => {
+                const available = isSlotAvailable(slot);
+                const slotStatus = getSlotStatusText(slot);
+
+                return (
+                  <TouchableOpacity
+                    key={slot}
+                    style={[
+                      getSlotStyle(slot),
+                      selectedSlot === slot && available && styles.selectedSlot,
+                    ]}
+                    onPress={() => available && setSelectedSlot(slot)}
+                    disabled={!available}
+                  >
+                    <Text
+                      style={[
+                        styles.slotText,
+                        selectedSlot === slot &&
+                          available &&
+                          styles.selectedSlotText,
+                        !available && styles.unavailableSlotText,
+                      ]}
+                    >
+                      {slot}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.statusText,
+                        slotStatus === "Booked" && styles.bookedStatusText,
+                        slotStatus === "Pending Approval" &&
+                          styles.pendingStatusText,
+                      ]}
+                    >
+                      {slotStatus}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+        )}
 
         <TouchableOpacity
           style={[
@@ -123,7 +297,7 @@ export default function footballBooking() {
   );
 }
 
-// Update container style to account for header
+// Enhanced styles with more distinct colors for different slot states
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -155,25 +329,30 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   slot: {
-    width: "30%",
-    padding: 10,
+    width: "100%", // Make slots full width for better visibility
+    padding: 16,
     margin: 5,
     borderRadius: 8,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#e8f5e9", // Light green for available slots
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#a5d6a7",
   },
   selectedSlot: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#4caf50", // Darker green for selected
+    borderColor: "#2e7d32",
   },
   slotText: {
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: "500",
     color: "#333",
   },
   selectedSlotText: {
     color: "#fff",
+    fontWeight: "bold",
   },
   continueButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#4caf50", // Green to match the selected slot
     padding: 16,
     borderRadius: 8,
     alignItems: "center",
@@ -188,13 +367,45 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   dateButton: {
-    padding: 10,
+    padding: 12,
     backgroundColor: "#f0f0f0",
     borderRadius: 8,
     marginTop: 5,
+    alignItems: "center",
   },
   dateButtonText: {
     fontSize: 16,
     color: "#333",
+  },
+  bookedSlot: {
+    backgroundColor: "#ffcdd2", // Light red for booked slots
+    borderColor: "#e57373",
+    opacity: 1,
+  },
+  pendingSlot: {
+    backgroundColor: "#fff9c4", // Light yellow for pending slots
+    borderColor: "#fff176",
+    opacity: 1,
+  },
+  unavailableSlotText: {
+    color: "#b71c1c", // Darker red for unavailable text
+  },
+  statusText: {
+    fontSize: 14,
+    marginTop: 6,
+    fontWeight: "500",
+  },
+  bookedStatusText: {
+    color: "#b71c1c", // Dark red
+    fontWeight: "bold",
+  },
+  pendingStatusText: {
+    color: "#f57f17", // Dark yellow/orange
+    fontWeight: "bold",
+  },
+  loadingText: {
+    textAlign: "center",
+    padding: 20,
+    color: "#666",
   },
 });

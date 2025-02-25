@@ -9,6 +9,8 @@ import {
 import React, { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../config/FirebaseConfig";
+import { router } from "expo-router";
+import adminDashboard from "../screens/adminDashboard";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -25,6 +27,7 @@ export default function LoginScreen() {
         const user = userCredential.user;
         console.log(user);
         Alert.alert("Success");
+        router.replace("/screens/adminDashboard");
         // ...
       })
       .catch((error) => {
