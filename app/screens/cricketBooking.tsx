@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   slot: {
-    width: "100%", // Make slots full width for better visibility
+    width: "98%", // Make slots full width for better visibility
     padding: 16,
     margin: 5,
     borderRadius: 8,

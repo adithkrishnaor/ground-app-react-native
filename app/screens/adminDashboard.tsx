@@ -104,6 +104,15 @@ export default function adminDashboard() {
     }
   };
 
+  const handleLogout = () => {
+    // Add your logout logic here (e.g., clearing auth state)
+    router.push("/login");
+  };
+
+  const navigateToReports = () => {
+    router.push("/screens/AdminReports");
+  };
+
   return (
     <>
       <Stack.Screen
@@ -111,9 +120,25 @@ export default function adminDashboard() {
           headerTitle: "Admin Dashboard",
           headerBackTitle: "Back",
           headerTransparent: false,
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={styles.logoutButton}
+            >
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
+          ),
         }}
       />
       <View style={styles.container}>
+        {/* Reports Navigation Button */}
+        <TouchableOpacity
+          style={styles.reportsButton}
+          onPress={navigateToReports}
+        >
+          <Text style={styles.reportsButtonText}>View Reports</Text>
+        </TouchableOpacity>
+
         <View style={styles.filterContainer}>
           <TouchableOpacity
             style={[
@@ -324,5 +349,25 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  logoutButton: {
+    marginRight: 16,
+    padding: 8,
+  },
+  logoutText: {
+    color: "#f44336",
+    fontWeight: "bold",
+  },
+  reportsButton: {
+    backgroundColor: "#007AFF",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    alignItems: "center",
+  },
+  reportsButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });

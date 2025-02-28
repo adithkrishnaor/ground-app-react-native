@@ -138,9 +138,9 @@ export default function userDetails() {
 
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => router.push("/(tabs)")}
         >
-          <Text style={styles.backButtonText}>Back</Text>
+          <Text style={styles.backButtonText}>Home</Text>
         </TouchableOpacity>
       </ScrollView>
     </>
